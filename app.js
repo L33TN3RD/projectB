@@ -6,7 +6,6 @@ const fileInput = document.getElementById('fileInput');
 const uploadSection = document.getElementById('upload-section');
 const resultsSection = document.getElementById('results');
 const subtitle = document.querySelector('.subtitle');
-const statsGrid = document.getElementById('statsGrid');
 
 // ========================================
 // GESTION DU DRAG & DROP
@@ -64,176 +63,136 @@ function processFile(file) {
 }
 
 function analyzeData(csv) {
-    const lines = csv.split('\n').filter(l => l.trim());
-    const headers = lines[0].split(',').map(h => h.trim());
-    const data = [];
+    try {
+        const lines = csv.split('\n').filter(l => l.trim());
+        const headers = lines[0].split(',').map(h => h.trim());
+        const data = [];
 
-    // Parse du CSV
-    for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',');
-        const row = {};
-        headers.forEach((h, idx) => {
-            const val = values[idx];
-            row[h] = (val && val !== 'NA' && !isNaN(val)) ? parseFloat(val) : val;
-        });
-        data.push(row);
-    }
+        // Parse du CSV
+        for (let i = 1; i < lines.length; i++) {
+            const values = lines[i].split(',');
+            const row = {};
+            headers.forEach((h, idx) => {
+                const val = values[idx];
+                row[h] = (val && val !== 'NA' && !isNaN(val)) ? parseFloat(val) : val;
+            });
+            data.push(row);
+        }
 
-    // Détection des cœurs CPU actifs (TECHNIQUE DE OUF!)
-    const activeCores = [];
-    for (let i = 0; i < 64; i++) {
-        const coreKey = `CPUCoreUtil%[${i}]`;
-        // On vérifie si ce cœur existe dans les headers ET a des valeurs non-NA
-        if (headers.includes(coreKey)) {
-            const coreValues = data.map(d => d[coreKey]).filter(v => v !== 'NA' && v !== undefined && v !== null);
-            // Si on a au moins une valeur valide, le cœur est actif
-            if (coreValues.length > 0) {
-                activeCores.push(i);
+        // Détection des cœurs CPU actifs
+        const activeCores = [];
+        for (let i = 0; i < 64; i++) {
+            const coreKey = `CPUCoreUtil%[${i}]`;
+            if (headers.includes(coreKey)) {
+                const coreValues = data.map(d => d[coreKey]).filter(v => v !== 'NA' && v !== undefined && v !== null && !isNaN(v));
+                if (coreValues.length > 0) {
+                    activeCores.push(i);
+                }
             }
         }
+
+        console.log(`🔥 Cœurs CPU détectés: ${activeCores.length} cœurs actifs`);
+
+        // Calcul des FPS
+        const fps = data.map(d => d.MsBetweenPresents ? 1000 / d.MsBetweenPresents : 0).filter(f => f > 0 && isFinite(f));
+        const sorted = [...fps].sort((a, b) => a - b);
+
+        // Calcul des statistiques de latence
+        const latencyMetrics = {
+            simulationStart: data.map(d => d.MsBetweenSimulationStart).filter(v => v && isFinite(v)),
+            presents: data.map(d => d.MsBetweenPresents).filter(v => v && isFinite(v)),
+            displayChange: data.map(d => d.MsBetweenDisplayChange).filter(v => v && isFinite(v)),
+            presentAPI: data.map(d => d.MsInPresentAPI).filter(v => v && isFinite(v)),
+            renderPresent: data.map(d => d.MsRenderPresentLatency).filter(v => v && isFinite(v)),
+            untilDisplayed: data.map(d => d.MsUntilDisplayed).filter(v => v && isFinite(v)),
+            renderQueue: data.map(d => d['Render Queue Depth']).filter(v => v && isFinite(v)),
+            pcLatency: data.map(d => d.MsPCLatency).filter(v => v && isFinite(v))
+        };
+
+        // Calcul des statistiques CPU
+        const cpuMetrics = {
+            freq: data.map(d => d['CPUClk(MHz)']).filter(v => v && isFinite(v)),
+            util: data.map(d => d['CPUUtil(%)']).filter(v => v && isFinite(v)),
+            temp: data.map(d => d['CPU Package Temp(C)']).filter(v => v && isFinite(v)),
+            power: data.map(d => d['CPU Package Power(W)']).filter(v => v && isFinite(v)),
+            tdp: data.map(d => d['CPU TDP (W)']).filter(v => v && isFinite(v)),
+            activeCores: activeCores,
+            coresData: activeCores.map(coreIdx => ({
+                index: coreIdx,
+                data: data.map(d => {
+                    const val = d[`CPUCoreUtil%[${coreIdx}]`];
+                    return (val && !isNaN(val)) ? val : 0;
+                })
+            }))
+        };
+
+        // Calcul des statistiques principales
+        const stats = {
+            avgFps: fps.length > 0 ? (fps.reduce((a, b) => a + b, 0) / fps.length).toFixed(1) : '0.0',
+            minFps: fps.length > 0 ? Math.min(...fps).toFixed(1) : '0.0',
+            maxFps: fps.length > 0 ? Math.max(...fps).toFixed(1) : '0.0',
+            p1Fps: fps.length > 0 ? sorted[Math.floor(fps.length * 0.01)].toFixed(1) : '0.0',
+            p01Fps: fps.length > 0 ? sorted[Math.floor(fps.length * 0.001)].toFixed(1) : '0.0',
+            avgGpuUtil: (data.map(d => d['GPU0Util(%)']).filter(v => v && isFinite(v)).reduce((a, b) => a + b, 0) / data.length).toFixed(1),
+            avgCpuUtil: (data.map(d => d['CPUUtil(%)']).filter(v => v && isFinite(v)).reduce((a, b) => a + b, 0) / data.length).toFixed(1),
+            avgGpuTemp: (data.map(d => d['GPU0Temp(C)']).filter(v => v && isFinite(v)).reduce((a, b) => a + b, 0) / data.length).toFixed(1),
+            avgCpuTemp: cpuMetrics.temp.length > 0 ? (cpuMetrics.temp.reduce((a, b) => a + b, 0) / cpuMetrics.temp.length).toFixed(1) : '0.0',
+            avgGpuPower: (data.map(d => d['NV Pwr(W) (API)'] || d['AMDPwr(W) (API)']).filter(v => v && isFinite(v)).reduce((a, b) => a + b, 0) / data.length).toFixed(1),
+            avgCpuPower: (data.map(d => d['CPU Package Power(W)']).filter(v => v && isFinite(v)).reduce((a, b) => a + b, 0) / data.length).toFixed(1),
+            avgPCLatency: latencyMetrics.pcLatency.length > 0 ? (latencyMetrics.pcLatency.reduce((a, b) => a + b, 0) / latencyMetrics.pcLatency.length).toFixed(1) : '0.0',
+            droppedFrames: data.filter(d => d.Dropped === 1 || d.Dropped === '1').length,
+            totalFrames: fps.length,
+            gameName: data[0].Application || 'Jeu',
+            gpu: data[0].GPU || 'GPU',
+            cpu: data[0].CPU || 'CPU',
+            resolution: data[0].Resolution || 'N/A',
+            latency: latencyMetrics,
+            cpuMetrics: cpuMetrics
+        };
+
+        // Calcul du Perf per Watt
+        const totalWatts = parseFloat(stats.avgGpuPower) + parseFloat(stats.avgCpuPower);
+        stats.perfPerWatt = totalWatts > 0 ? (parseFloat(stats.avgFps) / totalWatts).toFixed(2) : '0.00';
+
+        console.log('Stats calculées:', stats);
+
+        // Affichage des résultats
+        displayStats(stats);
+        displayLatencyStats(stats);
+        displayCPUStats(stats);
+        createCharts(data, fps, stats);
+
+        uploadSection.style.display = 'none';
+        resultsSection.style.display = 'block';
+        subtitle.textContent = `${stats.gameName} - ${stats.gpu} - ${stats.cpu} - ${stats.resolution} - ${stats.totalFrames} frames analysées`;
+    } catch (error) {
+        console.error('Erreur lors de l\'analyse:', error);
+        alert('Erreur lors de l\'analyse du fichier CSV. Vérifie la console pour plus de détails.');
     }
-
-    console.log(`🔥 Cœurs CPU détectés: ${activeCores.length} cœurs actifs sur ${activeCores.length > 0 ? Math.max(...activeCores) + 1 : 0} threads disponibles`);
-
-    // Calcul des FPS
-    const fps = data.map(d => d.MsBetweenPresents ? 1000 / d.MsBetweenPresents : 0).filter(f => f > 0);
-    const sorted = [...fps].sort((a, b) => a - b);
-
-    // Calcul des statistiques de latence
-    const latencyMetrics = {
-        simulationStart: data.map(d => d.MsBetweenSimulationStart).filter(v => v),
-        presents: data.map(d => d.MsBetweenPresents).filter(v => v),
-        displayChange: data.map(d => d.MsBetweenDisplayChange).filter(v => v),
-        presentAPI: data.map(d => d.MsInPresentAPI).filter(v => v),
-        renderPresent: data.map(d => d.MsRenderPresentLatency).filter(v => v),
-        untilDisplayed: data.map(d => d.MsUntilDisplayed).filter(v => v),
-        renderQueue: data.map(d => d['Render Queue Depth']).filter(v => v),
-        pcLatency: data.map(d => d.MsPCLatency).filter(v => v)
-    };
-
-    // Calcul des statistiques CPU
-    const cpuMetrics = {
-        freq: data.map(d => d['CPUClk(MHz)']).filter(v => v),
-        util: data.map(d => d['CPUUtil(%)']).filter(v => v),
-        temp: data.map(d => d['CPU Package Temp(C)']).filter(v => v),
-        power: data.map(d => d['CPU Package Power(W)']).filter(v => v),
-        tdp: data.map(d => d['CPU TDP (W)']).filter(v => v),
-        activeCores: activeCores,
-        coresData: activeCores.map(coreIdx => ({
-            index: coreIdx,
-            data: data.map(d => d[`CPUCoreUtil%[${coreIdx}]`] || 0)
-        }))
-    };
-
-    // Calcul des statistiques
-    const stats = {
-        avgFps: (fps.reduce((a, b) => a + b, 0) / fps.length).toFixed(1),
-        minFps: Math.min(...fps).toFixed(1),
-        maxFps: Math.max(...fps).toFixed(1),
-        p1Fps: sorted[Math.floor(fps.length * 0.01)].toFixed(1),
-        p01Fps: sorted[Math.floor(fps.length * 0.001)].toFixed(1),
-        avgGpuUtil: (data.map(d => d['GPU0Util(%)']).filter(v => v).reduce((a, b) => a + b, 0) / data.length).toFixed(1),
-        avgCpuUtil: (data.map(d => d['CPUUtil(%)']).filter(v => v).reduce((a, b) => a + b, 0) / data.length).toFixed(1),
-        avgGpuTemp: (data.map(d => d['GPU0Temp(C)']).filter(v => v).reduce((a, b) => a + b, 0) / data.length).toFixed(1),
-        avgGpuPower: (data.map(d => d['NV Pwr(W) (API)'] || d['AMDPwr(W) (API)']).filter(v => v).reduce((a, b) => a + b, 0) / data.length).toFixed(1),
-        avgCpuPower: (data.map(d => d['CPU Package Power(W)']).filter(v => v).reduce((a, b) => a + b, 0) / data.length).toFixed(1),
-        avgPCLatency: (latencyMetrics.pcLatency.reduce((a, b) => a + b, 0) / latencyMetrics.pcLatency.length).toFixed(1),
-        totalFrames: fps.length,
-        gameName: data[0].Application || 'Jeu',
-        gpu: data[0].GPU || 'GPU',
-        cpu: data[0].CPU || 'CPU',
-        latency: latencyMetrics,
-        cpuMetrics: cpuMetrics
-    };
-
-    displayStats(stats);
-    displayLatencyStats(stats);
-    displayCPUStats(stats);
-    createCharts(data, fps, stats);
-
-    // Affichage des résultats
-    uploadSection.style.display = 'none';
-    resultsSection.style.display = 'block';
-    subtitle.textContent = `${stats.gameName} - ${stats.gpu} - ${stats.totalFrames} frames analysées`;
 }
 
 // ========================================
-// AFFICHAGE DES STATISTIQUES CPU
+// AFFICHAGE DES STATISTIQUES VUE D'ENSEMBLE
 // ========================================
 
-function displayCPUStats(stats) {
-    const cpu = stats.cpuMetrics;
-    const cpuStatsGrid = document.getElementById('cpuStatsGrid');
+function displayStats(stats) {
+    document.getElementById('avgFps').textContent = stats.avgFps;
+    document.getElementById('minFps').textContent = stats.minFps;
+    document.getElementById('maxFps').textContent = stats.maxFps;
+    document.getElementById('p1Fps').textContent = stats.p1Fps;
+    document.getElementById('p01Fps').textContent = stats.p01Fps;
     
-    // Fonction helper pour calculer moyenne, min, max, p99
-    const calcStats = (arr) => {
-        if (!arr || arr.length === 0) return { avg: 0, min: 0, max: 0, p99: 0 };
-        const sorted = [...arr].sort((a, b) => a - b);
-        return {
-            avg: (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2),
-            min: Math.min(...arr).toFixed(2),
-            max: Math.max(...arr).toFixed(2),
-            p99: sorted[Math.floor(arr.length * 0.99)].toFixed(2)
-        };
-    };
+    document.getElementById('avgCpuUtil').textContent = stats.avgCpuUtil;
+    document.getElementById('avgCpuTemp').textContent = stats.avgCpuTemp;
+    document.getElementById('avgCpuPower').textContent = stats.avgCpuPower;
     
-    const freqStats = calcStats(cpu.freq);
-    const utilStats = calcStats(cpu.util);
-    const tempStats = calcStats(cpu.temp);
-    const powerStats = calcStats(cpu.power);
-    const tdpStats = calcStats(cpu.tdp);
+    document.getElementById('avgGpuUtil').textContent = stats.avgGpuUtil;
+    document.getElementById('avgGpuTemp').textContent = stats.avgGpuTemp;
+    document.getElementById('avgGpuPower').textContent = stats.avgGpuPower;
     
-    // Calcul de l'utilisation moyenne par cœur
-    const coresUtilAvg = cpu.coresData.map(core => {
-        const avg = core.data.reduce((a, b) => a + b, 0) / core.data.length;
-        return { index: core.index, avg: avg };
-    }).sort((a, b) => b.avg - a.avg);
-    
-    const mostUsedCore = coresUtilAvg[0] || { index: 0, avg: 0 };
-    const leastUsedCore = coresUtilAvg[coresUtilAvg.length - 1] || { index: 0, avg: 0 };
-    
-    cpuStatsGrid.innerHTML = `
-        <div class="stat-card gradient-cyan">
-            <div class="stat-title">Fréquence CPU Moyenne</div>
-            <div class="stat-value">${freqStats.avg}<span class="stat-unit">MHz</span></div>
-            <div class="stat-subtitle">Max: ${freqStats.max} MHz</div>
-        </div>
-        <div class="stat-card gradient-purple">
-            <div class="stat-title">Utilisation CPU</div>
-            <div class="stat-value">${utilStats.avg}<span class="stat-unit">%</span></div>
-            <div class="stat-subtitle">P99: ${utilStats.p99}%</div>
-        </div>
-        <div class="stat-card gradient-orange">
-            <div class="stat-title">Température Package</div>
-            <div class="stat-value">${tempStats.avg}<span class="stat-unit">°C</span></div>
-            <div class="stat-subtitle">Max: ${tempStats.max}°C</div>
-        </div>
-        <div class="stat-card gradient-lime">
-            <div class="stat-title">Puissance CPU</div>
-            <div class="stat-value">${powerStats.avg}<span class="stat-unit">W</span></div>
-            <div class="stat-subtitle">Max: ${powerStats.max}W</div>
-        </div>
-        <div class="stat-card gradient-yellow">
-            <div class="stat-title">TDP CPU</div>
-            <div class="stat-value">${tdpStats.avg}<span class="stat-unit">W</span></div>
-            <div class="stat-subtitle">Limite thermique</div>
-        </div>
-        <div class="stat-card gradient-blue">
-            <div class="stat-title">Cœurs Actifs</div>
-            <div class="stat-value">${cpu.activeCores.length}<span class="stat-unit">cores</span></div>
-            <div class="stat-subtitle">Threads détectés</div>
-        </div>
-        <div class="stat-card gradient-pink">
-            <div class="stat-title">Cœur le + Utilisé</div>
-            <div class="stat-value">Core ${mostUsedCore.index}</div>
-            <div class="stat-subtitle">${mostUsedCore.avg.toFixed(1)}% en moyenne</div>
-        </div>
-        <div class="stat-card gradient-indigo">
-            <div class="stat-title">Cœur le - Utilisé</div>
-            <div class="stat-value">Core ${leastUsedCore.index}</div>
-            <div class="stat-subtitle">${leastUsedCore.avg.toFixed(1)}% en moyenne</div>
-        </div>
-    `;
+    document.getElementById('avgPCLatency').textContent = stats.avgPCLatency;
+    document.getElementById('perfPerWatt').textContent = stats.perfPerWatt;
+    document.getElementById('droppedFrames').textContent = stats.droppedFrames;
 }
 
 // ========================================
@@ -244,7 +203,6 @@ function displayLatencyStats(stats) {
     const lat = stats.latency;
     const latencyStatsGrid = document.getElementById('latencyStatsGrid');
     
-    // Fonction helper pour calculer moyenne, min, max, p99
     const calcStats = (arr) => {
         if (!arr || arr.length === 0) return { avg: 0, min: 0, max: 0, p99: 0 };
         const sorted = [...arr].sort((a, b) => a - b);
@@ -309,50 +267,78 @@ function displayLatencyStats(stats) {
 }
 
 // ========================================
-// AFFICHAGE DES STATISTIQUES
+// AFFICHAGE DES STATISTIQUES CPU
 // ========================================
 
-function displayStats(stats) {
-    statsGrid.innerHTML = `
-        <div class="stat-card gradient-green">
-            <div class="stat-title">FPS Moyen</div>
-            <div class="stat-value">${stats.avgFps}<span class="stat-unit">FPS</span></div>
-        </div>
-        <div class="stat-card gradient-red">
-            <div class="stat-title">FPS Min</div>
-            <div class="stat-value">${stats.minFps}<span class="stat-unit">FPS</span></div>
-        </div>
-        <div class="stat-card gradient-blue">
-            <div class="stat-title">FPS Max</div>
-            <div class="stat-value">${stats.maxFps}<span class="stat-unit">FPS</span></div>
-        </div>
-        <div class="stat-card gradient-yellow">
-            <div class="stat-title">1% Low</div>
-            <div class="stat-value">${stats.p1Fps}<span class="stat-unit">FPS</span></div>
+function displayCPUStats(stats) {
+    const cpu = stats.cpuMetrics;
+    const cpuStatsGrid = document.getElementById('cpuStatsGrid');
+    
+    const calcStats = (arr) => {
+        if (!arr || arr.length === 0) return { avg: 0, min: 0, max: 0, p99: 0 };
+        const sorted = [...arr].sort((a, b) => a - b);
+        return {
+            avg: (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2),
+            min: Math.min(...arr).toFixed(2),
+            max: Math.max(...arr).toFixed(2),
+            p99: sorted[Math.floor(arr.length * 0.99)].toFixed(2)
+        };
+    };
+    
+    const freqStats = calcStats(cpu.freq);
+    const utilStats = calcStats(cpu.util);
+    const tempStats = calcStats(cpu.temp);
+    const powerStats = calcStats(cpu.power);
+    const tdpStats = calcStats(cpu.tdp);
+    
+    const coresUtilAvg = cpu.coresData.map(core => {
+        const avg = core.data.reduce((a, b) => a + b, 0) / core.data.length;
+        return { index: core.index, avg: avg };
+    }).sort((a, b) => b.avg - a.avg);
+    
+    const mostUsedCore = coresUtilAvg[0] || { index: 0, avg: 0 };
+    const leastUsedCore = coresUtilAvg[coresUtilAvg.length - 1] || { index: 0, avg: 0 };
+    
+    cpuStatsGrid.innerHTML = `
+        <div class="stat-card gradient-cyan">
+            <div class="stat-title">Fréquence CPU Moyenne</div>
+            <div class="stat-value">${freqStats.avg}<span class="stat-unit">MHz</span></div>
+            <div class="stat-subtitle">Max: ${freqStats.max} MHz</div>
         </div>
         <div class="stat-card gradient-purple">
-            <div class="stat-title">0.1% Low</div>
-            <div class="stat-value">${stats.p01Fps}<span class="stat-unit">FPS</span></div>
-        </div>
-        <div class="stat-card gradient-pink">
-            <div class="stat-title">GPU Util Moy</div>
-            <div class="stat-value">${stats.avgGpuUtil}<span class="stat-unit">%</span></div>
-        </div>
-        <div class="stat-card gradient-cyan">
-            <div class="stat-title">CPU Util Moy</div>
-            <div class="stat-value">${stats.avgCpuUtil}<span class="stat-unit">%</span></div>
+            <div class="stat-title">Utilisation CPU</div>
+            <div class="stat-value">${utilStats.avg}<span class="stat-unit">%</span></div>
+            <div class="stat-subtitle">P99: ${utilStats.p99}%</div>
         </div>
         <div class="stat-card gradient-orange">
-            <div class="stat-title">Temp GPU Moy</div>
-            <div class="stat-value">${stats.avgGpuTemp}<span class="stat-unit">°C</span></div>
+            <div class="stat-title">Température Package</div>
+            <div class="stat-value">${tempStats.avg}<span class="stat-unit">°C</span></div>
+            <div class="stat-subtitle">Max: ${tempStats.max}°C</div>
         </div>
         <div class="stat-card gradient-lime">
-            <div class="stat-title">Conso GPU Moy</div>
-            <div class="stat-value">${stats.avgGpuPower}<span class="stat-unit">W</span></div>
+            <div class="stat-title">Puissance CPU</div>
+            <div class="stat-value">${powerStats.avg}<span class="stat-unit">W</span></div>
+            <div class="stat-subtitle">Max: ${powerStats.max}W</div>
+        </div>
+        <div class="stat-card gradient-yellow">
+            <div class="stat-title">TDP CPU</div>
+            <div class="stat-value">${tdpStats.avg}<span class="stat-unit">W</span></div>
+            <div class="stat-subtitle">Limite thermique</div>
+        </div>
+        <div class="stat-card gradient-blue">
+            <div class="stat-title">Cœurs Actifs</div>
+            <div class="stat-value">${cpu.activeCores.length}<span class="stat-unit">cores</span></div>
+            <div class="stat-subtitle">Threads détectés</div>
+        </div>
+        <div class="stat-card gradient-pink">
+            <div class="stat-title">Cœur le + Utilisé</div>
+            <div class="stat-value">Core ${mostUsedCore.index}</div>
+            <div class="stat-subtitle">${mostUsedCore.avg.toFixed(1)}% en moyenne</div>
         </div>
         <div class="stat-card gradient-indigo">
-            <div class="stat-title">Latence Système</div>
-            <div class="stat-value">${stats.avgPCLatency}<span class="stat-unit">ms</span></div>
+            <div class="stat-title">Cœur le - Utilisé</div>
+            <div class="stat-value">Core ${leastUsedCore.index}</div>
+            <div class="stat-subtitle">${leastUsedCore.avg.toFixed(1)}% en moyenne</div>
         </div>
     `;
 }
@@ -362,12 +348,10 @@ function displayStats(stats) {
 // ========================================
 
 function createCharts(data, fps, stats) {
-    // Destruction des anciens graphiques
     Object.values(charts).forEach(chart => chart.destroy());
 
     const frames = data.map((_, i) => i + 1);
 
-    // Graphique FPS
     charts.fps = new Chart(document.getElementById('fpsChart'), {
         type: 'line',
         data: {
@@ -385,7 +369,6 @@ function createCharts(data, fps, stats) {
         options: getChartOptions('FPS')
     });
 
-    // Graphique Frame Time
     charts.frametime = new Chart(document.getElementById('frametimeChart'), {
         type: 'line',
         data: {
@@ -403,7 +386,6 @@ function createCharts(data, fps, stats) {
         options: getChartOptions('Millisecondes')
     });
 
-    // Graphique Pipeline de Latence - Vue d'ensemble
     charts.latencyPipeline = new Chart(document.getElementById('latencyPipelineChart'), {
         type: 'line',
         data: {
@@ -441,7 +423,6 @@ function createCharts(data, fps, stats) {
         options: getChartOptions('Millisecondes')
     });
 
-    // Graphique Stacked pour décomposition du pipeline
     charts.latencyStacked = new Chart(document.getElementById('latencyStackedChart'), {
         type: 'line',
         data: {
@@ -488,7 +469,6 @@ function createCharts(data, fps, stats) {
         }
     });
 
-    // Graphique Render Queue Depth
     charts.renderQueue = new Chart(document.getElementById('renderQueueChart'), {
         type: 'line',
         data: {
@@ -507,7 +487,6 @@ function createCharts(data, fps, stats) {
         options: getChartOptions('Frames en queue')
     });
 
-    // Graphique Fréquence & Température CPU
     charts.cpuFreqTemp = new Chart(document.getElementById('cpuFreqTempChart'), {
         type: 'line',
         data: {
@@ -579,7 +558,6 @@ function createCharts(data, fps, stats) {
         }
     });
 
-    // Graphique Puissance CPU vs TDP
     charts.cpuPower = new Chart(document.getElementById('cpuPowerChart'), {
         type: 'line',
         data: {
@@ -609,9 +587,7 @@ function createCharts(data, fps, stats) {
         options: getChartOptions('Watts')
     });
 
-    // Graphique Utilisation par Cœur CPU (TECHNIQUE DE OUF!)
     const cpuCoresDatasets = stats.cpuMetrics.coresData.map((core, idx) => {
-        // Palette de couleurs pour les cœurs
         const colors = [
             '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899',
             '#06b6d4', '#84cc16', '#f97316', '#6366f1', '#14b8a6', '#eab308'
@@ -681,7 +657,6 @@ function createCharts(data, fps, stats) {
         }
     });
 
-    // Graphique Utilisation
     charts.utilisation = new Chart(document.getElementById('utilisationChart'), {
         type: 'line',
         data: {
@@ -710,7 +685,6 @@ function createCharts(data, fps, stats) {
         options: getChartOptions('Pourcentage')
     });
 
-    // Graphique Température
     charts.temperature = new Chart(document.getElementById('temperatureChart'), {
         type: 'line',
         data: {
@@ -728,7 +702,6 @@ function createCharts(data, fps, stats) {
         options: getChartOptions('°Celsius')
     });
 
-    // Graphique Puissance
     charts.puissance = new Chart(document.getElementById('puissanceChart'), {
         type: 'line',
         data: {
@@ -757,10 +730,6 @@ function createCharts(data, fps, stats) {
         options: getChartOptions('Watts')
     });
 }
-
-// ========================================
-// OPTIONS POUR LES GRAPHIQUES
-// ========================================
 
 function getChartOptions(yLabel) {
     return {

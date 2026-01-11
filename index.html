@@ -32,10 +32,76 @@
                 <button class="tab" data-tab="puissance">Puissance</button>
             </div>
 
+            <!-- VUE D'ENSEMBLE -->
             <div class="tab-content active" id="overview">
-                <div class="stats-grid" id="statsGrid"></div>
+                <div class="stats-grid">
+                    <!-- FPS Stats -->
+                    <div class="stat-card gradient-green">
+                        <div class="stat-title">FPS Moyen</div>
+                        <div class="stat-value"><span id="avgFps">0</span><span class="stat-unit">FPS</span></div>
+                    </div>
+                    <div class="stat-card gradient-red">
+                        <div class="stat-title">FPS Min</div>
+                        <div class="stat-value"><span id="minFps">0</span><span class="stat-unit">FPS</span></div>
+                    </div>
+                    <div class="stat-card gradient-blue">
+                        <div class="stat-title">FPS Max</div>
+                        <div class="stat-value"><span id="maxFps">0</span><span class="stat-unit">FPS</span></div>
+                    </div>
+                    <div class="stat-card gradient-yellow">
+                        <div class="stat-title">1% Low</div>
+                        <div class="stat-value"><span id="p1Fps">0</span><span class="stat-unit">FPS</span></div>
+                    </div>
+                    <div class="stat-card gradient-purple">
+                        <div class="stat-title">0.1% Low</div>
+                        <div class="stat-value"><span id="p01Fps">0</span><span class="stat-unit">FPS</span></div>
+                    </div>
+                    
+                    <!-- CPU Stats -->
+                    <div class="stat-card gradient-cyan">
+                        <div class="stat-title">CPU Util Moy</div>
+                        <div class="stat-value"><span id="avgCpuUtil">0</span><span class="stat-unit">%</span></div>
+                    </div>
+                    <div class="stat-card gradient-orange">
+                        <div class="stat-title">CPU Temp Moy</div>
+                        <div class="stat-value"><span id="avgCpuTemp">0</span><span class="stat-unit">°C</span></div>
+                    </div>
+                    <div class="stat-card gradient-lime">
+                        <div class="stat-title">Conso CPU Moy</div>
+                        <div class="stat-value"><span id="avgCpuPower">0</span><span class="stat-unit">W</span></div>
+                    </div>
+                    
+                    <!-- GPU Stats -->
+                    <div class="stat-card gradient-pink">
+                        <div class="stat-title">GPU Util Moy</div>
+                        <div class="stat-value"><span id="avgGpuUtil">0</span><span class="stat-unit">%</span></div>
+                    </div>
+                    <div class="stat-card gradient-orange">
+                        <div class="stat-title">GPU Temp Moy</div>
+                        <div class="stat-value"><span id="avgGpuTemp">0</span><span class="stat-unit">°C</span></div>
+                    </div>
+                    <div class="stat-card gradient-lime">
+                        <div class="stat-title">Conso GPU Moy</div>
+                        <div class="stat-value"><span id="avgGpuPower">0</span><span class="stat-unit">W</span></div>
+                    </div>
+                    
+                    <!-- Performance Stats -->
+                    <div class="stat-card gradient-indigo">
+                        <div class="stat-title">Latence Système Moy</div>
+                        <div class="stat-value"><span id="avgPCLatency">0</span><span class="stat-unit">ms</span></div>
+                    </div>
+                    <div class="stat-card gradient-blue">
+                        <div class="stat-title">Perf per Watt</div>
+                        <div class="stat-value"><span id="perfPerWatt">0</span><span class="stat-unit">FPS/W</span></div>
+                    </div>
+                    <div class="stat-card gradient-red">
+                        <div class="stat-title">Frames Perdues</div>
+                        <div class="stat-value"><span id="droppedFrames">0</span><span class="stat-unit">frames</span></div>
+                    </div>
+                </div>
             </div>
 
+            <!-- FPS & FRAME TIME -->
             <div class="tab-content" id="fps">
                 <div class="chart-container">
                     <h3 class="chart-title">FPS Timeline</h3>
@@ -47,6 +113,7 @@
                 </div>
             </div>
 
+            <!-- PIPELINE DE LATENCE -->
             <div class="tab-content" id="latency">
                 <div class="stats-grid" id="latencyStatsGrid"></div>
                 
@@ -66,6 +133,7 @@
                 </div>
             </div>
 
+            <!-- CPU DÉTAILLÉ -->
             <div class="tab-content" id="cpu">
                 <div class="stats-grid" id="cpuStatsGrid"></div>
                 
@@ -85,6 +153,7 @@
                 </div>
             </div>
 
+            <!-- UTILISATION -->
             <div class="tab-content" id="utilisation">
                 <div class="chart-container">
                     <h3 class="chart-title">Utilisation GPU/CPU</h3>
@@ -92,6 +161,7 @@
                 </div>
             </div>
 
+            <!-- TEMPÉRATURE -->
             <div class="tab-content" id="temperature">
                 <div class="chart-container">
                     <h3 class="chart-title">Température GPU</h3>
@@ -99,6 +169,7 @@
                 </div>
             </div>
 
+            <!-- PUISSANCE -->
             <div class="tab-content" id="puissance">
                 <div class="chart-container">
                     <h3 class="chart-title">Consommation Électrique</h3>
