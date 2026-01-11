@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FrameView Benchmark Analyzer 🎮</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 FrameView Benchmark Analyzer</h1>
+        <p class="subtitle">Analyse de benchs</p>
+
+        <div id="upload-section">
+            <div class="upload-zone" id="dropZone">
+                <div class="upload-icon">📊</div>
+                <h2>Glisse ton fichier CSV FrameView ici</h2>
+                <p style="margin-top: 15px; color: #cbd5e0;">ou clique pour sélectionner un fichier</p>
+                <input type="file" id="fileInput" accept=".csv">
+            </div>
+        </div>
+
+        <div id="results">
+            <div class="tabs">
+                <button class="tab active" data-tab="overview">Vue d'ensemble</button>
+                <button class="tab" data-tab="fps">FPS & Frame Time</button>
+                <button class="tab" data-tab="latency">Pipeline de Latence</button>
+                <button class="tab" data-tab="cpu">CPU Détaillé</button>
+                <button class="tab" data-tab="utilisation">Utilisation</button>
+                <button class="tab" data-tab="temperature">Température</button>
+                <button class="tab" data-tab="puissance">Puissance</button>
+            </div>
+
+            <div class="tab-content active" id="overview">
+                <div class="stats-grid" id="statsGrid"></div>
+            </div>
+
+            <div class="tab-content" id="fps">
+                <div class="chart-container">
+                    <h3 class="chart-title">FPS Timeline</h3>
+                    <canvas id="fpsChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 class="chart-title">Frame Time (ms)</h3>
+                    <canvas id="frametimeChart"></canvas>
+                </div>
+            </div>
+
+            <div class="tab-content" id="latency">
+                <div class="stats-grid" id="latencyStatsGrid"></div>
+                
+                <div class="chart-container">
+                    <h3 class="chart-title">Pipeline de Latence - Vue d'ensemble</h3>
+                    <canvas id="latencyPipelineChart"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <h3 class="chart-title">Décomposition du Pipeline (Stacked)</h3>
+                    <canvas id="latencyStackedChart"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <h3 class="chart-title">Render Queue Depth</h3>
+                    <canvas id="renderQueueChart"></canvas>
+                </div>
+            </div>
+
+            <div class="tab-content" id="cpu">
+                <div class="stats-grid" id="cpuStatsGrid"></div>
+                
+                <div class="chart-container">
+                    <h3 class="chart-title">Fréquence & Température CPU</h3>
+                    <canvas id="cpuFreqTempChart"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <h3 class="chart-title">Puissance CPU vs TDP</h3>
+                    <canvas id="cpuPowerChart"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <h3 class="chart-title">Utilisation par Cœur CPU</h3>
+                    <canvas id="cpuCoresChart"></canvas>
+                </div>
+            </div>
+
+            <div class="tab-content" id="utilisation">
+                <div class="chart-container">
+                    <h3 class="chart-title">Utilisation GPU/CPU</h3>
+                    <canvas id="utilisationChart"></canvas>
+                </div>
+            </div>
+
+            <div class="tab-content" id="temperature">
+                <div class="chart-container">
+                    <h3 class="chart-title">Température GPU</h3>
+                    <canvas id="temperatureChart"></canvas>
+                </div>
+            </div>
+
+            <div class="tab-content" id="puissance">
+                <div class="chart-container">
+                    <h3 class="chart-title">Consommation Électrique</h3>
+                    <canvas id="puissanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
