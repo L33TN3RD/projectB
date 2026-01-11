@@ -64,6 +64,11 @@ h1 {
     margin-bottom: 20px;
 }
 
+.upload-subtitle {
+    margin-top: 15px;
+    color: #cbd5e0;
+}
+
 input[type="file"] {
     display: none;
 }

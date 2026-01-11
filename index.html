@@ -16,8 +16,8 @@
             <div class="upload-zone" id="dropZone">
                 <div class="upload-icon">📊</div>
                 <h2>Glisse ton fichier CSV FrameView ici</h2>
-                <p style="margin-top: 15px; color: #cbd5e0;">ou clique pour sélectionner un fichier</p>
-                <input type="file" id="fileInput" accept=".csv">
+                <p class="upload-subtitle">ou clique pour sélectionner un fichier</p>
+                <input type="file" id="fileInput" accept=".csv" aria-label="Sélectionner un fichier CSV">
             </div>
         </div>
 
@@ -27,8 +27,7 @@
                 <button class="tab" data-tab="fps">FPS & Frame Time</button>
                 <button class="tab" data-tab="latency">Pipeline de Latence</button>
                 <button class="tab" data-tab="cpu">CPU Détaillé</button>
-                <button class="tab" data-tab="utilisation">Utilisation</button>
-                <button class="tab" data-tab="temperature">Température</button>
+                <button class="tab" data-tab="gpu">GPU Détaillé</button>
                 <button class="tab" data-tab="puissance">Puissance</button>
             </div>
 
@@ -103,13 +102,26 @@
 
             <!-- FPS & FRAME TIME -->
             <div class="tab-content" id="fps">
+                <div class="stats-grid" id="fpsStatsGrid"></div>
+                
                 <div class="chart-container">
-                    <h3 class="chart-title">FPS Timeline</h3>
+                    <h3 class="chart-title">FPS Timeline avec Percentiles</h3>
                     <canvas id="fpsChart"></canvas>
                 </div>
+                
                 <div class="chart-container">
-                    <h3 class="chart-title">Frame Time (ms)</h3>
+                    <h3 class="chart-title">Distribution FPS (Histogramme)</h3>
+                    <canvas id="fpsHistogramChart"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <h3 class="chart-title">Frame Time avec Zones de Confort</h3>
                     <canvas id="frametimeChart"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <h3 class="chart-title">Stabilité Frame Time (Variance)</h3>
+                    <canvas id="frametimeVarianceChart"></canvas>
                 </div>
             </div>
 
@@ -153,27 +165,43 @@
                 </div>
             </div>
 
-            <!-- UTILISATION -->
-            <div class="tab-content" id="utilisation">
+            <!-- GPU DÉTAILLÉ -->
+            <div class="tab-content" id="gpu">
+                <div class="stats-grid" id="gpuStatsGrid"></div>
+                
                 <div class="chart-container">
-                    <h3 class="chart-title">Utilisation GPU/CPU</h3>
-                    <canvas id="utilisationChart"></canvas>
+                    <h3 class="chart-title">Fréquence GPU & Mémoire</h3>
+                    <canvas id="gpuFreqChart"></canvas>
                 </div>
-            </div>
-
-            <!-- TEMPÉRATURE -->
-            <div class="tab-content" id="temperature">
+                
                 <div class="chart-container">
-                    <h3 class="chart-title">Température GPU</h3>
-                    <canvas id="temperatureChart"></canvas>
+                    <h3 class="chart-title">Utilisation & Température GPU</h3>
+                    <canvas id="gpuUtilTempChart"></canvas>
+                </div>
+                
+                <div class="chart-container" id="gpu1Container" style="display: none;">
+                    <h3 class="chart-title">GPU Secondaire - Stats</h3>
+                    <canvas id="gpu1Chart"></canvas>
                 </div>
             </div>
 
             <!-- PUISSANCE -->
             <div class="tab-content" id="puissance">
+                <div class="stats-grid" id="powerStatsGrid"></div>
+                
                 <div class="chart-container">
-                    <h3 class="chart-title">Consommation Électrique</h3>
-                    <canvas id="puissanceChart"></canvas>
+                    <h3 class="chart-title">Consommation Totale Système</h3>
+                    <canvas id="totalPowerChart"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <h3 class="chart-title">Répartition Consommation (CPU vs GPU)</h3>
+                    <canvas id="powerBreakdownChart"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <h3 class="chart-title">Performance par Watt (Efficacité)</h3>
+                    <canvas id="perfPerWattChart"></canvas>
                 </div>
             </div>
         </div>
