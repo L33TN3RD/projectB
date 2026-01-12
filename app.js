@@ -79,7 +79,7 @@ function analyzeData(csv) {
             const values = lines[i].split(',');
             const row = {};
             headers.forEach((h, idx) => {
-                const val = values[idx];
+                const val = values[idx] ? values[idx].trim() : ''; // Trim pour éviter les espaces
                 // Conversion propre : nombre valide OU garder la string/NA
                 if (val && val !== 'NA') {
                     const num = parseFloat(val);
@@ -711,20 +711,54 @@ function createCharts(data, fps, stats) {
 
     const frames = data.map((_, i) => i + 1);
 
-    // Graphique FPS avec lignes de référence
+    // Graphique FPS avec lignes de référence (sans plugin annotations)
+    const avgFpsValue = parseFloat(stats.avgFps);
+    const p1FpsValue = parseFloat(stats.p1Fps);
+    const p01FpsValue = parseFloat(stats.p01Fps);
+    
     charts.fps = new Chart(document.getElementById('fpsChart'), {
         type: 'line',
         data: {
             labels: frames,
-            datasets: [{
-                label: 'FPS',
-                data: fps,
-                borderColor: '#10b981',
-                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                borderWidth: 2,
-                tension: 0.4,
-                pointRadius: 0
-            }]
+            datasets: [
+                {
+                    label: 'FPS',
+                    data: fps,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    fill: true
+                },
+                {
+                    label: `Avg: ${stats.avgFps}`,
+                    data: new Array(frames.length).fill(avgFpsValue),
+                    borderColor: '#3b82f6',
+                    borderWidth: 2,
+                    borderDash: [10, 5],
+                    pointRadius: 0,
+                    fill: false
+                },
+                {
+                    label: `1% Low: ${stats.p1Fps}`,
+                    data: new Array(frames.length).fill(p1FpsValue),
+                    borderColor: '#f59e0b',
+                    borderWidth: 2,
+                    borderDash: [5, 3],
+                    pointRadius: 0,
+                    fill: false
+                },
+                {
+                    label: `0.1% Low: ${stats.p01Fps}`,
+                    data: new Array(frames.length).fill(p01FpsValue),
+                    borderColor: '#ef4444',
+                    borderWidth: 2,
+                    borderDash: [3, 2],
+                    pointRadius: 0,
+                    fill: false
+                }
+            ]
         },
         options: {
             responsive: true,
@@ -739,52 +773,6 @@ function createCharts(data, fps, stats) {
                     bodyColor: '#cbd5e0',
                     borderColor: '#9333ea',
                     borderWidth: 1
-                },
-                annotation: {
-                    annotations: {
-                        avgLine: {
-                            type: 'line',
-                            yMin: parseFloat(stats.avgFps),
-                            yMax: parseFloat(stats.avgFps),
-                            borderColor: '#3b82f6',
-                            borderWidth: 2,
-                            borderDash: [5, 5],
-                            label: {
-                                content: `Avg: ${stats.avgFps}`,
-                                enabled: true,
-                                position: 'end',
-                                backgroundColor: '#3b82f6'
-                            }
-                        },
-                        p1Line: {
-                            type: 'line',
-                            yMin: parseFloat(stats.p1Fps),
-                            yMax: parseFloat(stats.p1Fps),
-                            borderColor: '#f59e0b',
-                            borderWidth: 2,
-                            borderDash: [3, 3],
-                            label: {
-                                content: `1% Low: ${stats.p1Fps}`,
-                                enabled: true,
-                                position: 'start',
-                                backgroundColor: '#f59e0b'
-                            }
-                        },
-                        p01Line: {
-                            type: 'line',
-                            yMin: parseFloat(stats.p01Fps),
-                            yMax: parseFloat(stats.p01Fps),
-                            borderColor: '#ef4444',
-                            borderWidth: 2,
-                            borderDash: [2, 2],
-                            label: {
-                                content: `0.1% Low: ${stats.p01Fps}`,
-                                enabled: true,
-                                position: 'start',
-                                backgroundColor: '#ef4444'
-                            }
-                        }
-                    }
                 }
             },
             scales: {
@@ -856,20 +844,41 @@ function createCharts(data, fps, stats) {
         }
     });
 
-    // Graphique Frame Time avec zones de confort
+    // Graphique Frame Time avec zones de confort (sans plugin annotations)
     charts.frametime = new Chart(document.getElementById('frametimeChart'), {
         type: 'line',
         data: {
             labels: frames,
-            datasets: [{
-                label: 'Frame Time (ms)',
-                data: data.map(d => d.MsBetweenPresents || 0),
-                borderColor: '#f59e0b',
-                backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                borderWidth: 2,
-                tension: 0.4,
-                pointRadius: 0
-            }]
+            datasets: [
+                {
+                    label: 'Frame Time (ms)',
+                    data: data.map(d => d.MsBetweenPresents || 0),
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    fill: true
+                },
+                {
+                    label: '60 FPS (16.67ms)',
+                    data: new Array(frames.length).fill(16.67),
+                    borderColor: '#10b981',
+                    borderWidth: 2,
+                    borderDash: [10, 5],
+                    pointRadius: 0,
+                    fill: false
+                },
+                {
+                    label: '30 FPS (33.33ms)',
+                    data: new Array(frames.length).fill(33.33),
+                    borderColor: '#ef4444',
+                    borderWidth: 2,
+                    borderDash: [5, 3],
+                    pointRadius: 0,
+                    fill: false
+                }
+            ]
         },
         options: {
             responsive: true,
@@ -884,50 +893,6 @@ function createCharts(data, fps, stats) {
                     bodyColor: '#cbd5e0',
                     borderColor: '#9333ea',
                     borderWidth: 1
-                },
-                annotation: {
-                    annotations: {
-                        zone60fps: {
-                            type: 'box',
-                            yMin: 0,
-                            yMax: 16.67,
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                            borderWidth: 0,
-                            label: {
-                                content: '60+ FPS zone',
-                                enabled: true,
-                                position: { x: 'start', y: 'start' }
-                            }
-                        },
-                        zone30fps: {
-                            type: 'box',
-                            yMin: 16.67,
-                            yMax: 33.33,
-                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                            borderWidth: 0,
-                            label: {
-                                content: '30-60 FPS zone',
-                                enabled: true,
-                                position: { x: 'start', y: 'center' }
-                            }
-                        },
-                        line60fps: {
-                            type: 'line',
-                            yMin: 16.67,
-                            yMax: 16.67,
-                            borderColor: '#10b981',
-                            borderWidth: 2,
-                            borderDash: [5, 5]
-                        },
-                        line30fps: {
-                            type: 'line',
-                            yMin: 33.33,
-                            yMax: 33.33,
-                            borderColor: '#f59e0b',
-                            borderWidth: 2,
-                            borderDash: [5, 5]
-                        }
-                    }
                 }
             },
             scales: {
