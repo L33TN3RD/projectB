@@ -102,18 +102,24 @@ function analyzeData(csv) {
 
         // Détection des cœurs CPU actifs
         const activeCores = [];
+        const coreMapping = {}; // Map index remappé -> index réel CSV
+        let remappedIndex = 0;
+        
         for (let i = 0; i < 64; i++) {
             const coreKey = `CPUCoreUtil%[${i}]`;
             if (headers.includes(coreKey)) {
                 // FIX: garder les zéros, juste exclure null/undefined
                 const coreValues = data.map(d => d[coreKey]).filter(v => v !== null && v !== undefined && typeof v === 'number');
                 if (coreValues.length > 0) {
-                    activeCores.push(i);
+                    activeCores.push(remappedIndex);
+                    coreMapping[remappedIndex] = i; // remappé -> réel CSV
+                    remappedIndex++;
                 }
             }
         }
 
         console.log(`🔥 Cœurs CPU détectés: ${activeCores.length} cœurs actifs`);
+        console.log('Mapping des cœurs (affichage→CSV):', coreMapping);
 
         // Calcul des FPS - FIX: garder les 0 si valides
         const fpsList = data.map(d => d.MsBetweenPresents && d.MsBetweenPresents > 0 ? 1000 / d.MsBetweenPresents : null)
@@ -163,13 +169,16 @@ function analyzeData(csv) {
             power: filterValid(data.map(d => d['CPU Package Power(W)'])),
             tdp: filterValid(data.map(d => d['CPU TDP (W)'])),
             activeCores: activeCores,
-            coresData: activeCores.map(coreIdx => ({
-                index: coreIdx,
-                data: data.map(d => {
-                    const val = d[`CPUCoreUtil%[${coreIdx}]`];
-                    return (typeof val === 'number') ? val : 0;
-                })
-            }))
+            coresData: activeCores.map(remappedIdx => {
+                const realCoreIdx = coreMapping[remappedIdx]; // Récupérer l'index réel du CSV
+                return {
+                    index: remappedIdx, // Index affiché (0-7)
+                    data: data.map(d => {
+                        const val = d[`CPUCoreUtil%[${realCoreIdx}]`]; // Utiliser l'index réel
+                        return (typeof val === 'number') ? val : 0;
+                    })
+                };
+            })
         };
 
         // Calcul des statistiques GPU
@@ -248,6 +257,13 @@ function analyzeData(csv) {
         stats.perfPerWatt = totalWatts > 0 ? (parseFloat(stats.avgFps) / totalWatts).toFixed(2) : '0.00';
 
         console.log('Stats calculées:', stats);
+        
+        // DEBUG: Vérification des données de latence
+        console.log('=== DEBUG LATENCE ===');
+        console.log('Render→Present (10 premières valeurs):', stats.latency.renderPresent.slice(0, 10));
+        console.log('Until Displayed (10 premières valeurs):', stats.latency.untilDisplayed.slice(0, 10));
+        console.log('Sont-elles identiques?', JSON.stringify(stats.latency.renderPresent.slice(0, 10)) === JSON.stringify(stats.latency.untilDisplayed.slice(0, 10)));
+        console.log('====================');
 
         // Affichage des résultats
         displayStats(stats);
