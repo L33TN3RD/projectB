@@ -80,8 +80,11 @@ function analyzeData(csv) {
             const row = {};
             headers.forEach((h, idx) => {
                 const val = values[idx] ? values[idx].trim() : ''; // Trim pour éviter les espaces
-                // Conversion propre : nombre valide OU garder la string/NA
-                if (val && val !== 'NA') {
+                
+                // FIX: Ne pas convertir certains champs spéciaux en nombres
+                if (h === 'Resolution' || h === 'Application' || h === 'GPU' || h === 'CPU' || h === 'Runtime') {
+                    row[h] = val || null;
+                } else if (val && val !== 'NA') {
                     const num = parseFloat(val);
                     row[h] = !isNaN(num) ? num : val;
                 } else {
@@ -231,7 +234,7 @@ function analyzeData(csv) {
             gameName: (data[0] && data[0].Application) || 'Jeu',
             gpu: (data[0] && data[0].GPU) || 'GPU',
             cpu: (data[0] && data[0].CPU) || 'CPU',
-            resolution: (data[0] && data[0].Resolution) ? String(data[0].Resolution) : 'N/A',
+            resolution: (data[0] && data[0].Resolution) || 'N/A',
             latency: latencyMetrics,
             cpuMetrics: cpuMetrics,
             gpuMetrics: gpuMetrics,
