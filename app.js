@@ -231,7 +231,7 @@ function analyzeData(csv) {
             gameName: (data[0] && data[0].Application) || 'Jeu',
             gpu: (data[0] && data[0].GPU) || 'GPU',
             cpu: (data[0] && data[0].CPU) || 'CPU',
-            resolution: (data[0] && data[0].Resolution) || 'N/A',
+            resolution: (data[0] && data[0].Resolution) ? String(data[0].Resolution) : 'N/A',
             latency: latencyMetrics,
             cpuMetrics: cpuMetrics,
             gpuMetrics: gpuMetrics,
@@ -711,7 +711,7 @@ function createCharts(data, fps, stats) {
 
     const frames = data.map((_, i) => i + 1);
 
-    // Graphique FPS avec lignes de référence (sans plugin annotations)
+    // Graphique FPS avec lignes de référence (lignes AVANT fps pour visibilité)
     const avgFpsValue = parseFloat(stats.avgFps);
     const p1FpsValue = parseFloat(stats.p1Fps);
     const p01FpsValue = parseFloat(stats.p01Fps);
@@ -722,23 +722,14 @@ function createCharts(data, fps, stats) {
             labels: frames,
             datasets: [
                 {
-                    label: 'FPS',
-                    data: fps,
-                    borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.4,
-                    pointRadius: 0,
-                    fill: true
-                },
-                {
                     label: `Avg: ${stats.avgFps}`,
                     data: new Array(frames.length).fill(avgFpsValue),
                     borderColor: '#3b82f6',
                     borderWidth: 2,
                     borderDash: [10, 5],
                     pointRadius: 0,
-                    fill: false
+                    fill: false,
+                    order: 1
                 },
                 {
                     label: `1% Low: ${stats.p1Fps}`,
@@ -747,7 +738,8 @@ function createCharts(data, fps, stats) {
                     borderWidth: 2,
                     borderDash: [5, 3],
                     pointRadius: 0,
-                    fill: false
+                    fill: false,
+                    order: 2
                 },
                 {
                     label: `0.1% Low: ${stats.p01Fps}`,
@@ -756,7 +748,19 @@ function createCharts(data, fps, stats) {
                     borderWidth: 2,
                     borderDash: [3, 2],
                     pointRadius: 0,
-                    fill: false
+                    fill: false,
+                    order: 3
+                },
+                {
+                    label: 'FPS',
+                    data: fps,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    fill: true,
+                    order: 4
                 }
             ]
         },
@@ -844,21 +848,31 @@ function createCharts(data, fps, stats) {
         }
     });
 
-    // Graphique Frame Time avec zones de confort (sans plugin annotations)
+    // Graphique Frame Time avec références FPS (240, 120, 60, 30)
     charts.frametime = new Chart(document.getElementById('frametimeChart'), {
         type: 'line',
         data: {
             labels: frames,
             datasets: [
                 {
-                    label: 'Frame Time (ms)',
-                    data: data.map(d => d.MsBetweenPresents || 0),
-                    borderColor: '#f59e0b',
-                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.4,
+                    label: '240 FPS (4.17ms)',
+                    data: new Array(frames.length).fill(4.17),
+                    borderColor: '#8b5cf6',
+                    borderWidth: 1.5,
+                    borderDash: [8, 4],
                     pointRadius: 0,
-                    fill: true
+                    fill: false,
+                    order: 1
+                },
+                {
+                    label: '120 FPS (8.33ms)',
+                    data: new Array(frames.length).fill(8.33),
+                    borderColor: '#06b6d4',
+                    borderWidth: 2,
+                    borderDash: [10, 5],
+                    pointRadius: 0,
+                    fill: false,
+                    order: 2
                 },
                 {
                     label: '60 FPS (16.67ms)',
@@ -867,7 +881,8 @@ function createCharts(data, fps, stats) {
                     borderWidth: 2,
                     borderDash: [10, 5],
                     pointRadius: 0,
-                    fill: false
+                    fill: false,
+                    order: 3
                 },
                 {
                     label: '30 FPS (33.33ms)',
@@ -876,7 +891,19 @@ function createCharts(data, fps, stats) {
                     borderWidth: 2,
                     borderDash: [5, 3],
                     pointRadius: 0,
-                    fill: false
+                    fill: false,
+                    order: 4
+                },
+                {
+                    label: 'Frame Time (ms)',
+                    data: data.map(d => d.MsBetweenPresents || 0),
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    fill: true,
+                    order: 5
                 }
             ]
         },
